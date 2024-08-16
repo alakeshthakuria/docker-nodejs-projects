@@ -1,15 +1,19 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
 
 const app = express();
-app.use(bodyParser.json());
-app.use(express.static(__dirname)); // Serve static files (e.g., index.html)
+app.use(express.json()); // Use built-in JSON parser
+app.use(express.static(__dirname)); // Serve static files
 
 // MongoDB connection
-mongoose.connect('mongodb://admin:admin@localhost:27017/user-account?authSource=admin')
+const mongoURI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@localhost:27017/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`;
+mongoose.connect(mongoURI)
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Could not connect to MongoDB:', err));
+  .catch(err => {
+      console.error('Could not connect to MongoDB:', err);
+      process.exit(1); // Exit if MongoDB connection fails
+  });
 
 // Define the schemas
 const nameSchema = new mongoose.Schema({ name: String });
@@ -35,6 +39,11 @@ app.post('/submit', async (req, res) => {
         console.error('Error saving data:', error);
         res.status(500).json({ message: 'Failed to save data' });
     }
+});
+
+// Serve index.html on root URL
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
 });
 
 // Start the server
