@@ -6,14 +6,24 @@ const app = express();
 app.use(express.json()); // Use built-in JSON parser
 app.use(express.static(__dirname)); // Serve static files
 
-// MongoDB connection
-const mongoURI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@localhost:27017/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`;
-mongoose.connect(mongoURI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => {
-      console.error('Could not connect to MongoDB:', err);
-      process.exit(1); // Exit if MongoDB connection fails
-  });
+
+// Determine if running inside Docker or locally
+const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
+
+// MongoDB connection URI based on the environment
+const mongoUrlDocker = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongo-container:27017/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`;
+const mongoUrlLocal = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@localhost:27017/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`;
+
+const mongoUrl = isDocker ? mongoUrlDocker : mongoUrlLocal;
+
+// Connect to MongoDB
+mongoose.connect(mongoUrl)
+.then(() => {
+console.log(`Connected to MongoDB using ${isDocker ? 'Docker' : 'local'} connection string!`);
+})
+.catch(err => {
+console.error('Failed to connect to MongoDB:', err);
+});
 
 // Define the schemas
 const nameSchema = new mongoose.Schema({ name: String });
